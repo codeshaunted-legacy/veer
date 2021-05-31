@@ -26,7 +26,7 @@ namespace veer {
 
 #define WINDOWS_IGNORE_PACKING_MISMATCH
 #pragma pack(1)
-struct s_JMPIntruction {
+struct s_JMPInstruction {
   uint8_t op_code = 0xe9;
   uintptr_t address;
 };
@@ -36,25 +36,25 @@ void detour(uintptr_t __original, void* __redirect);
 void detour(uintptr_t __original, void* __redirect) {
   s_JMPInstruction jmp;
 
-  uint32_t protect;
+  DWORD protect;
   VirtualProtect((void*)__original, sizeof(jmp), PAGE_EXECUTE_READWRITE, &protect);
 
   jmp.address = (uintptr_t)__redirect - __original - sizeof(jmp); // gets relative address
 
-  memcpy(__original, &jmp, sizeof(jmp));
+  memcpy((void*)__original, &jmp, sizeof(jmp));
 
-  uint32_t temp_protect;
+  DWORD temp_protect;
   VirtualProtect((void*)__original, sizeof(jmp), protect, &temp_protect);
 }
 
 void* trampoline(uintptr_t __original, void* __redirect);
 
 void* trampoline(uintptr_t __original, void* __redirect) {
-  void* bridge = VirtualAlloc(nullptr, sizeof(s_JMPIntruction) * 2, MEM_COMMIT | MEM_RESERVE, PAGE_EXECUTE_READWRITE);
+  void* bridge = VirtualAlloc(nullptr, sizeof(s_JMPInstruction) * 2, MEM_COMMIT | MEM_RESERVE, PAGE_EXECUTE_READWRITE);
 
-  memcpy(bridge, __original, sizeof(s_JMPIntruction));
+  memcpy(bridge, (void*)__original, sizeof(s_JMPInstruction));
 
-  detour(bridge + sizeof(s_JMPIntruction), __original + sizeof(s_JMPIntruction));
+  detour((uintptr_t)bridge + sizeof(s_JMPInstruction), (void*)(__original + sizeof(s_JMPInstruction)));
   detour(__original, __redirect);
 
   return bridge;
