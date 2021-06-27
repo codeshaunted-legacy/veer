@@ -27,41 +27,41 @@ namespace veer {
 #define WINDOWS_IGNORE_PACKING_MISMATCH
 #pragma pack(1)
 struct s_JMPInstruction {
-  uint8_t op_code = 0xe9;
-  uintptr_t address;
+    uint8_t op_code = 0xe9;
+    uintptr_t address;
 };
 
 void detour(uintptr_t __original, void* __redirect);
 
 void detour(uintptr_t __original, void* __redirect) {
-  s_JMPInstruction jmp;
+    s_JMPInstruction jmp;
 
-  DWORD protect;
-  VirtualProtect((void*)__original, sizeof(s_JMPInstruction), PAGE_EXECUTE_READWRITE, &protect);
+    DWORD protect;
+    VirtualProtect((void*)__original, sizeof(s_JMPInstruction), PAGE_EXECUTE_READWRITE, &protect);
 
-  jmp.address = (uintptr_t)__redirect - __original - sizeof(jmp); // gets relative address
+    jmp.address = (uintptr_t)__redirect - __original - sizeof(jmp); // gets relative address
 
-  memcpy((void*)__original, &jmp, sizeof(s_JMPInstruction)); // write jmp
+    memcpy((void*)__original, &jmp, sizeof(s_JMPInstruction)); // write jmp
 
-  DWORD temp_protect;
-  VirtualProtect((void*)__original, sizeof(s_JMPInstruction), protect, &temp_protect);
+    DWORD temp_protect;
+    VirtualProtect((void*)__original, sizeof(s_JMPInstruction), protect, &temp_protect);
 }
 
 void* trampoline(uintptr_t __original, void* __redirect);
 
 void* trampoline(uintptr_t __original, void* __redirect) {
-  void* bridge = VirtualAlloc(nullptr, sizeof(s_JMPInstruction) * 2, MEM_COMMIT | MEM_RESERVE, PAGE_EXECUTE_READWRITE);
+    void* bridge = VirtualAlloc(nullptr, sizeof(s_JMPInstruction) * 2, MEM_COMMIT | MEM_RESERVE, PAGE_EXECUTE_READWRITE);
 
-  memcpy(bridge, (void*)__original, sizeof(s_JMPInstruction)); // write bridge bytes
+    memcpy(bridge, (void*)__original, sizeof(s_JMPInstruction)); // write bridge bytes
 
-  s_JMPInstruction bridge_jmp;
-  bridge_jmp.address = __original - (uintptr_t)bridge - sizeof(s_JMPInstruction); // setup bridge jmp
-  
-  memcpy((void*)((uintptr_t)bridge + sizeof(s_JMPInstruction) + 1), &bridge_jmp, sizeof(s_JMPInstruction)); // write bridge jmp
-  
-  detour(__original, __redirect); // detour to redirect
+    s_JMPInstruction bridge_jmp;
+    bridge_jmp.address = __original - (uintptr_t)bridge - sizeof(s_JMPInstruction); // setup bridge jmp
 
-  return bridge;
+    memcpy((void*)((uintptr_t)bridge + sizeof(s_JMPInstruction)), &bridge_jmp, sizeof(s_JMPInstruction)); // write bridge jmp
+
+    detour(__original, __redirect); // detour to redirect
+
+    return bridge;
 }
 
 } // namespace veer
